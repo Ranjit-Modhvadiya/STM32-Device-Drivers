@@ -35,16 +35,6 @@ void delay(void){
 	}
 }
 
-void GPIO_assign(GPIO_TypeDef *GPIOx, uint8_t N, uint8_t Mode){
-	
-	GPIO_Handle_t Name;
-	Name.pGPIOx = GPIOx;
-	Name.config.PIN_NO = N;
-	Name.config.PIN_MODE = Mode;
-	GPIO_Init(&Name);
-	
-}
-
 int main(void){
 	
 	SysClockConfig();

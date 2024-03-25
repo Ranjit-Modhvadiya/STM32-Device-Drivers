@@ -1,58 +1,61 @@
-#include "stm32f303xe.h"
+
 #include "GPIO.h"
-#include "Timer.h"
+#include "Interrupt.h"
+
+INT_Config_t INT;
 
 void SysClockConfig(void);
-void delay(void);
-	
+
 void SysClockConfig(void){
 	
 	RCC->CR |= RCC_CR_HSION;
 	while(!(RCC->CR & RCC_CR_HSIRDY));
 	RCC->CR |= (1<<7);
-	
+	 
 	RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 	
 	RCC->CFGR |= 0;
 	
-	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;	
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
-	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
-}
-
-void delay(void){
-	TIM3->CNT=0;
-	while((TIM3->CNT < 0x0000007a));
+	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 }
 
 int main(void){
 	
-
-	
-	TIM_Config_t Time;
 	SysClockConfig();
 	
-	Time.pTIMx = TIM3;
-	Time.OPM = OPM_OFF;
-	Time.DIR = DIR_UP;
-	Time.CMS = CMS_Edge;
-	Time.ARPE = ARPE_EN;
-	Time.PSC = 0xffff;
-	Time.ARR = 0x7a;
-	Timer_Config(&Time);
-	GPIO_assign(GPIOB, 0, GPIO_MODE_OUT);
-	GPIO_assign(GPIOB, 7, GPIO_MODE_OUT);
-	GPIO_assign(GPIOB, 14, GPIO_MODE_OUT);
-	Counter_Start(&Time);
-
+	GPIO_Assign(GPIOB, 0, GPIO_MODE_OUT, GPIO_PUPD_PU);
+	GPIO_Assign(GPIOB, 7, GPIO_MODE_OUT, GPIO_PUPD_PU);
+	GPIO_Assign(GPIOB, 14, GPIO_MODE_OUT, GPIO_PUPD_PU);
+	GPIO_Assign(GPIOC, 0, GPIO_MODE_IN, GPIO_PUPD_PD);
 	
-	while(1){
-			
-			GPIO_Write(GPIOB, 0, 1);
-			delay();
-		
-			GPIO_Write(GPIOB, 0, 0);
-			delay();
 
-	}
-}	
+	INT.Line = 0;
+	INT.Port = C;
+	INT.Edge = RisingEdge;
+	
+	Int_Config(&INT);
+	Int_EdgeSel(&INT);
+	Int_Enable(&INT);
+	NVIC_EnableIRQ(EXTI0_IRQn);
+	
+	GPIO_Write(GPIOB, 0, 1);
+	GPIO_Write(GPIOB, 7, 0);
+	GPIO_Write(GPIOB, 14, 1);
+	
+	while(1)
+	{
+		
+	}	
+	
+}
+
+void EXTI0_IRQHandler(void)
+{
+	GPIO_Toggle(GPIOB, 0);
+	GPIO_Toggle(GPIOB, 7);
+	GPIO_Toggle(GPIOB, 14);
+	Int_ClearPend(&INT);
+}
